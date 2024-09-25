@@ -1,0 +1,66 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKERHUB_CREDENTIALS = credentials('11becdcf-dbaa-4945-ac3a-ebf1f1d5ac29')  // Docker Hub credentials stored in Jenkins
+        DOCKER_IMAGE_NAME = 'your-dockerhub-username/your-image-name'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Checking out code from GitHub...'
+                git 'https://github.com/Zaraar125/Graded_Class_Activity.git'  // Replace with your repo URL
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    echo 'Building Docker image...'
+                    // Build the Docker image
+                    sh 'docker build -t ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER} .'
+                }
+            }
+        }
+
+        stage('Login to Docker Hub') {
+            steps {
+                script {
+                    echo 'Logging into Docker Hub...'
+                    // Log in to Docker Hub using credentials stored in Jenkins
+                    sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    echo 'Pushing Docker image to Docker Hub...'
+                    // Push the Docker image to Docker Hub
+                    sh 'docker push ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}'
+                }
+            }
+        }
+
+        stage('Clean up') {
+            steps {
+                script {
+                    echo 'Cleaning up local Docker images...'
+                    // Clean up the local Docker images to save space
+                    sh 'docker rmi ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}'
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Docker image successfully built and pushed!'
+        }
+        failure {
+            echo 'Pipeline failed.'
+        }
+    }
+}
